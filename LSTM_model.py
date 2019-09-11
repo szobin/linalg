@@ -2,9 +2,9 @@ import warnings
 warnings.simplefilter(action="ignore", category=Warning)
 
 import os
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # or any {'0', '1', '2'}
+# os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # or any {'0', '1', '2'}
 import tensorflow as tf
-tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
+# tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.WARN)
 
 import requests
 import pandas as pd
@@ -43,15 +43,15 @@ def create_dataset(data_set, lookback):
 def main():
     df1 = get_silso()
     yy = df1['activity'].values
-    x = df1['time'].values
+    # x = df1['time'].values
 
     # нормализация данных
     scaler = MinMaxScaler(feature_range=(0, 1))
-    ym = scaler.fit_transform(y)
+    ym = scaler.fit_transform(yy.reshape((-1, 1)))
 
     #разбиваем на training and testing set
     train_size = int(len(ym)*2/3)
-    test_size = len(ym)-train_size
+    # test_size = len(ym)-train_size
 
     train, test = ym[0:train_size], ym[train_size+1:]
 
@@ -70,30 +70,36 @@ def main():
     model.add(Dense(1))
     model.compile(loss="mean_squared_error", optimizer='adam')
 
-    model.fit(train_x, train_y, epochs=100, batch_size=1, verbose=2)
+    model.fit(train_x, train_y, epochs=2, batch_size=1, verbose=2)
 
     train_predict = model.predict(train_x)
     test_predict = model.predict(test_x)
     train_predict = scaler.inverse_transform(train_predict)
     test_predict = scaler.inverse_transform(test_predict)
 
+    print(train_y)
+    print(train_predict[:, 0])
     # Статистика модели
-    train_score = math.sqrt(mean_squared_error(train_y[0], train_predict[:, 0]))
-    test_score = math.sqrt(mean_squared_error(test_y[0], test_predict[:, 0]))
-    print("Train score ={.2f}".format(train_score))
-    print("Test score ={.2f}".format(test_score))
+    train_score = math.sqrt(mean_squared_error(train_y[:, 0], train_predict[:, 0]))
+    test_score = math.sqrt(mean_squared_error(test_y[:, 0], test_predict[:, 0]))
+    print("Train score ={0:.3f}".format(train_score))
+    print("Test score ={0:.3f}".format(test_score))
 
     # рисуем
 
-    train_predict_plot = np.empty_like(y)
+    train_predict_plot = np.empty_like(ym)
     train_predict_plot[:, :] = np.nan
-    train_predict_plot[len(train_predict) + lookback * 2 + 1:len(y) - 1, :] = train_predict
+    train_predict_plot[lookback:len(train_predict) + lookback, :] = train_predict
 
-    test_predict_plot = np.empty_like(y)
+    print(train_predict_plot)
+
+    test_predict_plot = np.empty_like(ym)
     test_predict_plot[:, :] = np.nan
-    test_predict_plot[len(test_predict) + lookback * 2 + 1:len(y) - 1, :] = test_predict
+    test_predict_plot[len(train_predict) + lookback * 2+2:len(ym) - 1, :] = test_predict
 
-    plt.plot(scaler.inverse_transform(y))
+    print(test_predict_plot)
+
+    plt.plot(scaler.inverse_transform(ym))
     plt.plot(train_predict_plot)
     plt.plot(test_predict_plot)
     # plt.show()
