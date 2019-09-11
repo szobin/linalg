@@ -1,0 +1,10 @@
+requests
+scipy
+scikit-learn
+pandas
+matplotlib
+seaborn
+numpy
+# pyinterval
+tensorflow
+keras
