@@ -1,3 +1,11 @@
+import warnings
+warnings.simplefilter(action="ignore", category=Warning)
+
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # or any {'0', '1', '2'}
+import tensorflow as tf
+tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
+
 import requests
 import pandas as pd
 import io
@@ -16,7 +24,7 @@ def get_silso():
     if r.status_code != 200:
         print('get data error {}'.format(r.status_code))
         return -1
-    csv = "year;month;time;activity;o1;o2;o3\n" + r.content.decode("utf-8")  # ???
+    csv = "year;month;time;activity;o1;o2;o3\n" + r.content.decode("utf-8")  
     df = pd.read_csv(io.StringIO(csv), delimiter=';')
     df1 = df[["time", "activity"]]
     return df1
@@ -25,9 +33,9 @@ def get_silso():
 def create_dataset(data_set, lookback):
     data_x, data_y = [], []
     for i in range(len(data_set)-lookback-1):
-        a = data_set[i:(i+lookback), 0]
+        a = data_set[i:(i+lookback)]
         data_x.append(a)
-        data_y.append(data_set[i+lookback, 0])
+        data_y.append(data_set[i+lookback])
     return np.array(data_x), np.array(data_y)
 
 
@@ -36,7 +44,6 @@ def main():
     df1 = get_silso()
     yy = df1['activity'].values
     x = df1['time'].values
-    y = np.array([(y1, x1) for y1, x1 in zip(yy, x)])
 
     # нормализация данных
     scaler = MinMaxScaler(feature_range=(0, 1))
@@ -48,18 +55,18 @@ def main():
 
     train, test = ym[0:train_size], ym[train_size+1:]
 
-    lookback = 1
+    lookback = 24
+    n_features = 1
     train_x, train_y = create_dataset(train, lookback)
     test_x, test_y = create_dataset(test, lookback)
-    print(train_x.shape)
 
-    train_x = np.reshape(train_x, (train_x.shape[0]), 1, train_x.shape[1])
-    test_x = np.reshape(test_x, (test_x.shape[0]), 1, test_x.shape[1])
+    train_x = np.reshape(train_x, (train_x.shape[0], train_x.shape[1], n_features))
+    test_x = np.reshape(test_x, (test_x.shape[0], test_x.shape[1], n_features))
 
     # Создание модели LSTM
 
     model = Sequential()
-    model.add(LSTM(4, input_shape=(1, lookback)))
+    model.add(LSTM(4, input_shape=(lookback, n_features)))
     model.add(Dense(1))
     model.compile(loss="mean_squared_error", optimizer='adam')
 
@@ -78,7 +85,6 @@ def main():
 
     # рисуем
 
-
     train_predict_plot = np.empty_like(y)
     train_predict_plot[:, :] = np.nan
     train_predict_plot[len(train_predict) + lookback * 2 + 1:len(y) - 1, :] = train_predict
@@ -90,7 +96,8 @@ def main():
     plt.plot(scaler.inverse_transform(y))
     plt.plot(train_predict_plot)
     plt.plot(test_predict_plot)
-    plt.show()
+    # plt.show()
+    plt.savefig("lstm.png")
 
 
 main()
