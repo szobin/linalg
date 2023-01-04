@@ -1,7 +1,6 @@
 import numpy as np
 from keras.models import Sequential
-from keras.layers import LSTM
-from keras.layers import Dense
+from keras.layers import LSTM, Bidirectional, Dense
 
 
 def create_dataset(data_set, lookback):
@@ -25,15 +24,21 @@ for i in range(len(X)):
     print(X[i], y[i])
 
 
-# define model
+# define model 1 layer
 model = Sequential()
 model.add(LSTM(50, activation='relu', input_shape=(n_steps, n_features)))
 model.add(Dense(1))
 model.compile(optimizer='adam', loss='mse')
 
-# define model
+# define model 2 layers
 model = Sequential()
 model.add(LSTM(50, activation='relu', input_shape=(n_steps, n_features)))
+model.add(Dense(1))
+model.compile(optimizer='adam', loss='mse')
+
+# define model bidirectional
+model = Sequential()
+model.add(Bidirectional(LSTM(50, activation='relu'), input_shape=(n_steps, n_features)))
 model.add(Dense(1))
 model.compile(optimizer='adam', loss='mse')
 

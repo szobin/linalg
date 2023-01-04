@@ -8,6 +8,8 @@ from sklearn.model_selection import train_test_split
 
 from sklearn.linear_model import LinearRegression
 from sklearn.linear_model import Ridge
+import sklearn.metrics as metrics
+
 # from sklearn.linear_model import LogisticRegression
 
 # from sklearn.naive_bayes import GaussianNB
@@ -55,6 +57,10 @@ def main():
     y_new_lr = model_lr.predict(x_new)
     y_new_rr = model_rr.predict(x_new)
     # y_new_lgr = model_lgr.predict(x_new)
+
+    r2=metrics.r2_score(y_true, y_pred)
+    mse=metrics.mean_squared_error(y_true, y_pred)
+    print(model.intercept_, model.coef_)
 
     plt.plot(x, y, '-b')
     plt.plot(x_new, y_new_lr, '-r')

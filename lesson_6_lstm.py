@@ -1,11 +1,6 @@
 import warnings
-warnings.simplefilter(action="ignore", category=Warning)
-
 import os
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # or any {'0', '1', '2'}
-
 import tensorflow as tf
-tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.WARN)
 
 import requests
 import pandas as pd
@@ -20,6 +15,11 @@ from sklearn.metrics import mean_squared_error
 import math
 
 
+warnings.simplefilter(action="ignore", category=Warning)
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # or any {'0', '1', '2'}
+tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.WARN)
+
+
 def get_silso():
     r = requests.get("http://www.sidc.be/silso/INFO/snmtotcsv.php")
     if r.status_code != 200:
@@ -31,12 +31,12 @@ def get_silso():
     return df1
 
 
-def create_dataset(data_set, lookback):
+def create_dataset(data_set, look_back):
     data_x, data_y = [], []
-    for i in range(len(data_set)-lookback-1):
-        a = data_set[i:(i+lookback)]
+    for i in range(len(data_set)-look_back-1):
+        a = data_set[i:(i+look_back)]
         data_x.append(a)
-        data_y.append(data_set[i+lookback])
+        data_y.append(data_set[i+look_back])
     return np.array(data_x), np.array(data_y)
 
 
@@ -49,16 +49,16 @@ def main():
     scaler = MinMaxScaler(feature_range=(0, 1))
     ym = scaler.fit_transform(yy.reshape((-1, 1)))
 
-    #разбиваем на training and testing set
+    # разбиваем на training and testing set
     train_size = int(len(ym)*2/3)
     # test_size = len(ym)-train_size
 
     train, test = ym[0:train_size], ym[train_size+1:]
 
-    lookback = 24
+    look_back = 24
     n_features = 1
-    train_x, train_y = create_dataset(train, lookback)
-    test_x, test_y = create_dataset(test, lookback)
+    train_x, train_y = create_dataset(train, look_back)
+    test_x, test_y = create_dataset(test, look_back)
 
     train_x = np.reshape(train_x, (train_x.shape[0], train_x.shape[1], n_features))
     test_x = np.reshape(test_x, (test_x.shape[0], test_x.shape[1], n_features))
@@ -66,7 +66,7 @@ def main():
     # Создание модели LSTM
 
     model = Sequential()
-    model.add(LSTM(4, input_shape=(lookback, n_features)))
+    model.add(LSTM(4, input_shape=(look_back, n_features)))
     model.add(Dense(1))
     model.compile(loss="mean_squared_error", optimizer='adam')
 
@@ -74,11 +74,9 @@ def main():
 
     train_predict = model.predict(train_x)
     test_predict = model.predict(test_x)
-    train_predict = scaler.inverse_transform(train_predict)
-    test_predict = scaler.inverse_transform(test_predict)
 
-    print(train_y)
-    print(train_predict[:, 0])
+    # print(train_y)
+    # print(train_predict[:, 0])
     # Статистика модели
     train_score = math.sqrt(mean_squared_error(train_y[:, 0], train_predict[:, 0]))
     test_score = math.sqrt(mean_squared_error(test_y[:, 0], test_predict[:, 0]))
@@ -86,18 +84,19 @@ def main():
     print("Test score ={0:.3f}".format(test_score))
 
     # рисуем
-
+    train_predict = scaler.inverse_transform(train_predict)
     train_predict_plot = np.empty_like(ym)
     train_predict_plot[:, :] = np.nan
-    train_predict_plot[lookback:len(train_predict) + lookback, :] = train_predict
+    train_predict_plot[look_back:len(train_predict) + look_back, :] = train_predict
 
-    print(train_predict_plot)
+    # print(train_predict_plot)
 
+    test_predict = scaler.inverse_transform(test_predict)
     test_predict_plot = np.empty_like(ym)
     test_predict_plot[:, :] = np.nan
-    test_predict_plot[len(train_predict) + lookback * 2+2:len(ym) - 1, :] = test_predict
+    test_predict_plot[len(train_predict) + look_back * 2+2:len(ym) - 1] = test_predict
 
-    print(test_predict_plot)
+    # print(test_predict_plot)
 
     plt.plot(scaler.inverse_transform(ym))
     plt.plot(train_predict_plot)

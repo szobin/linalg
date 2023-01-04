@@ -4,7 +4,7 @@ scikit-learn
 pandas
 matplotlib
 seaborn
-numpy
+numpy==1.19.5
 # pyinterval
 tensorflow
 keras
