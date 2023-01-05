@@ -41,20 +41,23 @@ def create_dataset(data_set, look_back):
 
 
 def main():
+    # 1. preparacion de los datos
+    # 1.1 importar los datos de fuente
     df1 = get_silso()
     yy = df1['activity'].values
     # x = df1['time'].values
 
-    # нормализация данных
+    # 1.2 normalizar los datos
     scaler = MinMaxScaler(feature_range=(0, 1))
     ym = scaler.fit_transform(yy.reshape((-1, 1)))
 
-    # разбиваем на training and testing set
+    # 1.3 dividir para training y testing set
     train_size = int(len(ym)*2/3)
     # test_size = len(ym)-train_size
 
     train, test = ym[0:train_size], ym[train_size+1:]
 
+    # 1.4 crear dataset
     look_back = 24
     n_features = 1
     train_x, train_y = create_dataset(train, look_back)
@@ -63,27 +66,29 @@ def main():
     train_x = np.reshape(train_x, (train_x.shape[0], train_x.shape[1], n_features))
     test_x = np.reshape(test_x, (test_x.shape[0], test_x.shape[1], n_features))
 
-    # Создание модели LSTM
+    # 2. Creating of model LSTM
 
     model = Sequential()
     model.add(LSTM(4, input_shape=(look_back, n_features)))
     model.add(Dense(1))
     model.compile(loss="mean_squared_error", optimizer='adam')
 
+    # 3. Ensena de la red
     model.fit(train_x, train_y, epochs=2, batch_size=1, verbose=2)
 
+    # 4. prediccion
     train_predict = model.predict(train_x)
     test_predict = model.predict(test_x)
 
     # print(train_y)
     # print(train_predict[:, 0])
-    # Статистика модели
+    # 5. Model statistic's
     train_score = math.sqrt(mean_squared_error(train_y[:, 0], train_predict[:, 0]))
     test_score = math.sqrt(mean_squared_error(test_y[:, 0], test_predict[:, 0]))
     print("Train score ={0:.3f}".format(train_score))
     print("Test score ={0:.3f}".format(test_score))
 
-    # рисуем
+    # 6. draw results
     train_predict = scaler.inverse_transform(train_predict)
     train_predict_plot = np.empty_like(ym)
     train_predict_plot[:, :] = np.nan
